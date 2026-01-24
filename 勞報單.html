@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勞務報酬單小工具 (浮水印版)</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #0984e3;
+            --bg-gray: #dfe6e9;
+            --white: #ffffff;
+            --border: #b2bec3;
+            --danger: #e74c3c;
+        }
+        body {
+            font-family: "Microsoft JhengHei", "PMingLiU", sans-serif;
+            background-color: var(--bg-gray);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- 1. 導航頁籤 --- */
+        .nav-tabs {
+            background: linear-gradient(to bottom, #34495e, #2c3e50);
+            display: flex;
+            padding: 0 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+            border-bottom: 1px solid #1a252f;
+        }
+        .nav-item {
+            padding: 12px 25px;
+            color: #bdc3c7;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 15px;
+            margin-right: 2px;
+            border-radius: 5px 5px 0 0;
+            background: rgba(0,0,0,0.2);
+            transition: 0.2s;
+            position: relative;
+            top: 2px;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active {
+            color: #2c3e50;
+            background: var(--bg-gray);
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* --- 2. 主內容區 --- */
+        .tab-content {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            padding: 20px;
+        }
+        .tab-pane {
+            display: none;
+            height: 100%;
+            overflow-y: auto;
+            padding-bottom: 50px;
+        }
+        .tab-pane.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- Tab 1: 填寫表單 --- */
+        .form-container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        fieldset { border: 1px solid #ccc; border-radius: 6px; padding: 20px; margin-bottom: 20px; background: #fff; }
+        legend { font-weight: bold; color: var(--primary); padding: 0 10px; font-size: 1.1em; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .form-label { font-weight: bold; color: #555; }
+        
+        .form-input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
+        .form-input:focus { border-color: var(--accent); outline: none; background: #f0f8ff; }
+
+        /* 上傳框樣式 */
+        .file-box {
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #888;
+            font-size: 14px;
+            position: relative;
+        }
+        .file-box:hover { border-color: var(--accent); background: #eef6fc; color: var(--accent); }
+        .wm-badge {
+            position: absolute; right: 5px; top: 5px; 
+            background: #00b894; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px;
+        }
+        
+        /* 清除按鈕 (小顆) */
+        .btn-clear-sm {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .btn-clear-sm:hover { opacity: 0.8; }
+
+        .btn-group { display: flex; gap: 15px; margin-top: 30px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; }
+        .btn-save { background: #27ae60; }
+        .btn-clear { background: #7f8c8d; }
+        .btn-preview { background: var(--accent); }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        .config-box { background: #fdfefe; border-color: #b2bec3; }
+        
+        /* 狀態切換 */
+        .toggle-switch { display: flex; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+        .toggle-opt { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: #eee; }
+        .toggle-opt.active { background: var(--accent); color: white; font-weight: bold; }
+
+        /* --- Tab 2: 預覽與列印 --- */
+        .preview-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .print-bar {
+            background: #fff; width: 100%; max-width: 210mm; padding: 15px;
+            text-align: center; border-radius: 8px; margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .btn-print-lg {
+            background: #e67e22; color: white; border: none; padding: 10px 30px; 
+            font-size: 16px; font-weight: bold; border-radius: 50px; cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* A4 紙張 */
+        .a4-page {
+            width: 210mm; min-height: 297mm; background: white; padding: 15mm 20mm;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); box-sizing: border-box;
+            position: relative; margin-bottom: 30px;
+        }
+
+        .header { text-align: center; margin-bottom: 20px; }
+        .company-title { font-size: 24pt; font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; }
+        .doc-title { font-size: 18pt; font-weight: bold; border: 2px solid #000; display: inline-block; padding: 5px 20px; }
+
+        table.std-table { width: 100%; border-collapse: collapse; border: 2px solid #000; table-layout: fixed; }
+        table.std-table td { border: 1px solid #000; padding: 8px 10px; vertical-align: middle; font-size: 11pt; line-height: 1.4; }
+        .col-gray { background: #e0e0e0; text-align: center; font-weight: bold; }
+        .money-cell { font-family: "Courier New", monospace; font-weight: bold; text-align: right; padding-right: 15px; font-size: 12pt; }
+        .calc-formula { font-size: 10pt; color: #555; font-family: "Courier New", monospace; margin-left: 10px; }
+
+        .footer-notes { font-size: 10pt; margin-top: 15px; line-height: 1.6; color: #333; }
+        .signature-row { margin-top: 40px; display: flex; justify-content: space-between; border: 2px solid #000; padding: 15px; }
+        .sig-box { width: 45%; }
+        
+        /* 圖片黏貼區 */
+        .id-paste-area { margin-top: 20px; display: flex; gap: 20px; height: 220px; }
+        .paste-box { 
+            flex: 1; border: 2px dashed #b2bec3; 
+            display: flex; align-items: center; justify-content: center; 
+            color: #b2bec3; font-size: 14pt; text-align: center; background: #fafafa;
+            overflow: hidden; position: relative; cursor: pointer;
+        }
+        .paste-box:hover { background: #f0f0f0; border-color: #999; }
+        .paste-box img { max-width: 98%; max-height: 98%; object-fit: contain; display: none; }
+        .paste-text { position: absolute; pointer-events: none; }
+
+        /* 第二頁 */
+        .page-break { page-break-before: always; }
+        .bankbook-page { display: none; border: 2px dashed #b2bec3; height: 400px; margin-top: 50px; align-items: center; justify-content: center; color: #b2bec3; font-size: 16pt; background: #fafafa; }
+
+        /* --- Tab 3: 歷史紀錄 --- */
+        .history-container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .history-table th, .history-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        .history-table th { background: #f8f9fa; color: #555; }
+        .history-table tr:hover { background: #f1f2f6; }
+        .btn-sm { padding: 5px 12px; font-size: 13px; border-radius: 4px; border: none; cursor: pointer; color: white; margin-right: 5px; }
+        .btn-load { background: #0984e3; }
+        .btn-del { background: #d63031; }
+
+        /* --- 列印模式 --- */
+        @media print {
+            .nav-tabs, .form-container, .print-bar, .history-container, .btn-group, .config-box { display: none !important; }
+            body, .tab-content, .tab-pane { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; display: block !important; }
+            #tab-preview { display: block !important; }
+            #tab-edit, #tab-history { display: none !important; }
+            .preview-wrapper { display: block !important; padding: 0 !important; margin: 0 !important; }
+            .a4-page { box-shadow: none !important; margin: 0 !important; width: 100% !important; page-break-after: always; }
+            .bankbook-page { display: flex !important; margin-top: 0 !important; border: none !important; border-top: 2px dashed #ccc !important; page-break-inside: avoid; }
+            @page { margin: 0; size: A4; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="nav-tabs">
+    <div class="nav-item active" onclick="switchTab('edit')">✏️ 填寫與設定</div>
+    <div class="nav-item" onclick="switchTab('preview')">📄 預覽與列印</div>
+    <div class="nav-item" onclick="switchTab('history')">📂 歷史紀錄</div>
+</div>
+
+<div class="tab-content">
+    
+    <div id="tab-edit" class="tab-pane active">
+        <div class="form-container">
+            <h2 style="text-align:center; color:#2c3e50; margin-bottom:20px;">勞務報酬單小工具</h2>
+            
+            <fieldset class="config-box">
+                <legend>⚙️ 參數設定 (自動記憶)</legend>
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label class="form-label">適用年度</label>
+                        <input type="text" id="cfg_year" class="form-input" value="115" onchange="saveConfig(); refreshPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">公司抬頭</label>
+                        <input type="text" id="cfg_company" class="form-input" value="您的公司名稱" onchange="saveConfig(); refreshPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">基本工資 (元)</label>
+                        <input type="text" id="cfg_minWage" class="form-input" value="29,500" 
+                               onfocus="unfmtField(this)" onblur="fmtField(this); saveConfig(); refreshPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">薪資起扣點 (元)</label>
+                        <input type="text" id="cfg_taxThresh" class="form-input" value="90,501" 
+                               onfocus="unfmtField(this)" onblur="fmtField(this); saveConfig(); refreshPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">健保費率 (%)</label>
+                        <input type="number" id="cfg_nhiRate" class="form-input" value="2.11" step="0.01" onchange="saveConfig(); refreshPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">扣繳稅率 (%)</label>
+                        <input type="number" id="cfg_taxRate" class="form-input" value="5" step="0.1" onchange="saveConfig(); refreshPreview()">
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>1. 稅務與身分</legend>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">稅務身分</label>
+                        <div class="toggle-switch">
+                            <div id="btn_res" class="toggle-opt active" onclick="setResidency(true)">居住者</div>
+                            <div id="btn_non" class="toggle-opt" onclick="setResidency(false)">非居住者</div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">工會投保</label>
+                        <div style="padding:10px; background:#f9ca24; border-radius:4px; cursor:pointer;" onclick="toggleUnionCheck()">
+                            <input type="checkbox" id="chk_union" onchange="refreshPreview()" style="transform:scale(1.5); margin-right:10px;">
+                            <span style="font-weight:bold; color:#d35400;">具備職業工會身分</span>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>2. 報單內容</legend>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">給付日期</label>
+                        <input type="date" id="in_date" class="form-input" onchange="refreshPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">所得類別</label>
+                        <select id="in_type" class="form-input" onchange="refreshPreview()">
+                            <option value="50">50 - 薪資所得</option>
+                            <option value="9A">9A - 執行業務</option>
+                            <option value="9B">9B - 稿費/演講</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">所得人姓名</label>
+                        <input type="text" id="in_name" class="form-input" placeholder="請輸入姓名" oninput="refreshPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">身分證字號</label>
+                        <input type="text" id="in_id" class="form-input" oninput="refreshPreview()">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">合作內容說明</label>
+                    <input type="text" id="in_content" class="form-input" placeholder="例如：1月份顧問費..." oninput="refreshPreview()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="color:#0984e3; font-size:1.1em;">給付總額 (新台幣)</label>
+                    <input type="number" id="in_total" class="form-input" style="font-size:20px; font-weight:bold; border:2px solid #0984e3;" placeholder="輸入金額" oninput="refreshPreview()">
+                </div>
+            </fieldset>
+            
+            <fieldset>
+                <legend>3. 身分證圖檔 (自動加浮水印)</legend>
+                <div style="font-size:13px; color:#e74c3c; margin-bottom:10px;">
+                    * 系統將自動在空白處加上「僅供XX公司申報勞務使用」之白色浮水印。
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <div class="label-row">
+                            <span class="form-label">正面圖檔</span>
+                            <button class="btn-clear-sm" onclick="clearImage('img_front', 'text_front', 'file_front')">❌ 清除</button>
+                        </div>
+                        <label class="file-box">
+                            <input type="file" id="file_front" accept="image/*" style="display:none;" onchange="processImage(this, 'img_front', 'text_front', 'front')">
+                            <span>📂 點此選擇檔案...</span>
+                            <span class="wm-badge">自動浮水印</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <span class="form-label">反面圖檔</span>
+                            <button class="btn-clear-sm" onclick="clearImage('img_back', 'text_back', 'file_back')">❌ 清除</button>
+                        </div>
+                        <label class="file-box">
+                            <input type="file" id="file_back" accept="image/*" style="display:none;" onchange="processImage(this, 'img_back', 'text_back', 'back')">
+                            <span>📂 點此選擇檔案...</span>
+                            <span class="wm-badge">自動浮水印</span>
+                        </label>
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="btn-group">
+                <button class="btn btn-save" onclick="saveRecord()">💾 存檔 (僅文字)</button>
+                <button class="btn btn-clear" onclick="clearForm()">↺ 清空重填</button>
+                <button class="btn btn-preview" onclick="switchTab('preview')">👉 前往預覽頁面</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-preview" class="tab-pane">
+        <div class="preview-wrapper">
+            <div class="print-bar">
+                <span style="font-weight:bold; color:#2c3e50;">確認內容無誤後，請點擊右方按鈕列印 &nbsp; ➤ &nbsp;</span>
+                <button class="btn-print-lg" onclick="window.print()">🖨️ 列印報單</button>
+            </div>
+
+            <div class="a4-page">
+                <div class="header">
+                    <div class="company-title" id="out_company">公司名稱</div>
+                    <div class="doc-title">勞 務 報 酬 單</div>
+                </div>
+
+                <table class="std-table">
+                    <colgroup>
+                        <col style="width: 15%;">
+                        <col style="width: 35%;">
+                        <col style="width: 15%;">
+                        <col style="width: 35%;">
+                    </colgroup>
+                    
+                    <tr>
+                        <td class="col-gray">給付日期</td>
+                        <td id="out_date"></td>
+                        <td class="col-gray">所得類別</td>
+                        <td id="out_type"></td>
+                    </tr>
+                    <tr>
+                        <td class="col-gray">所得人</td>
+                        <td id="out_name"></td>
+                        <td class="col-gray">身分證號</td>
+                        <td id="out_id"></td>
+                    </tr>
+                    <tr>
+                        <td class="col-gray">稅務身分</td>
+                        <td id="out_res">居住者</td>
+                        <td class="col-gray">工會投保</td>
+                        <td id="out_union">否</td>
+                    </tr>
+                    <tr>
+                        <td class="col-gray">合作內容</td>
+                        <td colspan="3" id="out_content"></td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="col-gray" rowspan="4" style="text-align:center;">款項<br>計算</td>
+                        <td class="col-gray" colspan="2">項 目 (含計算式)</td>
+                        <td class="col-gray">金 額</td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left:15px; font-weight:bold;" colspan="2">給付總額</td>
+                        <td class="money-cell" id="out_total">0</td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left:15px; font-weight:bold;" colspan="2" id="out_tax_label">
+                            代扣所得稅
+                        </td>
+                        <td class="money-cell" id="out_tax">0</td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left:15px; font-weight:bold;" colspan="2" id="out_nhi_label">
+                            代扣二代健保補充保費
+                        </td>
+                        <td class="money-cell" id="out_nhi">0</td>
+                    </tr>
+                    <tr>
+                        <td class="col-gray">實領金額</td>
+                        <td colspan="3" class="money-cell" style="font-size:16pt; color:black; padding-right:20px;" id="out_net">
+                            新台幣 0 元整
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="footer-notes">
+                    <strong>※ 扣繳備註 (依 <span id="note_year">115</span> 年度標準)：</strong><br>
+                    1. <strong>薪資所得(50)：</strong>起扣點 $<span id="note_tax_thresh"></span>，扣繳 <span id="note_tax_rate"></span>%；給付達基本工資($<span id="note_min_wage"></span>)且無工會者扣 <span id="note_nhi_rate"></span>% 健保。<br>
+                    2. <strong>執行業務(9A/9B)：</strong>單次給付達 $20,000 者，需扣繳 10% 所得稅；無工會者需另扣 <span id="note_nhi_rate_2"></span>% 健保。<br>
+                    3. <strong>非居住者：</strong>依稅法規定 (薪資低於1.5倍基本工資扣6%，超過扣18%；執行業務扣20%)。
+                </div>
+
+                <div class="signature-row">
+                    <div class="sig-box">
+                        <strong>核決主管：</strong>
+                        <br><br><br>
+                        <div style="border-bottom:1px solid #000; width:100%;"></div>
+                    </div>
+                    <div class="sig-box">
+                        <strong>所得人簽章：</strong>
+                        <br><br><br>
+                        <div style="border-bottom:1px solid #000; width:100%;"></div>
+                        <div style="text-align:right; margin-top:5px; font-size:11pt;">
+                            簽收日期：____/____/____
+                        </div>
+                    </div>
+                </div>
+
+                <div class="id-paste-area">
+                    <div class="paste-box" onclick="document.getElementById('file_front').click()">
+                        <span id="text_front" class="paste-text">身分證 (正面)<br>黏貼處<br><small>(點此選擇檔案)</small></span>
+                        <img id="img_front" alt="正面">
+                    </div>
+                    <div class="paste-box" onclick="document.getElementById('file_back').click()">
+                        <span id="text_back" class="paste-text">身分證 (反面)<br>黏貼處<br><small>(點此選擇檔案)</small></span>
+                        <img id="img_back" alt="反面">
+                    </div>
+                </div>
+
+                <div class="page-break"></div>
+                <div class="header" style="margin-top:40px;">
+                    <div class="doc-title" style="border:none;">附件資料</div>
+                </div>
+                <div class="bankbook-page">
+                    存摺封面影本<br>黏貼處
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-history" class="tab-pane">
+        <div class="history-container">
+            <h2 style="color:#2c3e50; border-bottom:2px solid #eee; padding-bottom:10px;">📂 歷史存檔紀錄</h2>
+            <div style="text-align:right; margin-bottom:10px; font-size:14px; color:#777;">
+                * 僅儲存文字資料，圖片需每次重新上傳
+            </div>
+            
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>所得人姓名</th>
+                        <th>所得類別</th>
+                        <th>給付總額</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+            <div id="no-history-msg" style="text-align:center; padding:20px; color:#aaa; display:none;">
+                目前沒有任何存檔紀錄
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let isResident = true;
+
+    function init() {
+        document.getElementById('in_date').valueAsDate = new Date();
+        loadConfig();
+        loadHistory();
+        refreshPreview();
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tabName).classList.add('active');
+        const tabs = ['edit', 'preview', 'history'];
+        const idx = tabs.indexOf(tabName);
+        document.querySelectorAll('.nav-item')[idx].classList.add('active');
+        if(tabName === 'history') loadHistory();
+        if(tabName === 'preview') refreshPreview();
+        document.querySelector('.tab-content').scrollTop = 0;
+    }
+
+    // --- 浮水印處理核心 ---
+    function processImage(input, imgId, textId, type) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            const company = document.getElementById('cfg_company').value || "本公司";
+            const waterMarkText = `僅供 ${company} 申報勞務使用`;
+
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+
+                    // 1. 繪製原圖
+                    ctx.drawImage(img, 0, 0);
+
+                    // 2. 設定浮水印樣式
+                    const fontSize = canvas.width * 0.045; // 動態字體大小
+                    ctx.font = `bold ${fontSize}px "Microsoft JhengHei"`;
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.85)"; // 白色半透明
+                    ctx.textAlign = "center";
+                    ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // 加一點陰影比較清楚
+                    ctx.shadowBlur = 4;
+
+                    // 3. 決定位置
+                    let x = canvas.width / 2;
+                    let y;
+
+                    if (type === 'front') {
+                        // 正面：約 20% 處 (標題與姓名中間)
+                        y = canvas.height * 0.20;
+                    } else {
+                        // 反面：約 90% 處 (條碼位置)
+                        y = canvas.height * 0.90;
+                    }
+
+                    // 4. 繪製文字
+                    ctx.fillText(waterMarkText, x, y);
+
+                    // 5. 輸出
+                    document.getElementById(imgId).src = canvas.toDataURL('image/jpeg');
+                    document.getElementById(imgId).style.display = 'block';
+                    document.getElementById(textId).style.display = 'none';
+                };
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function clearImage(imgId, textId, inputId) {
+        document.getElementById(imgId).src = "";
+        document.getElementById(imgId).style.display = 'none';
+        document.getElementById(textId).style.display = 'block';
+        document.getElementById(inputId).value = ""; 
+    }
+
+    function saveConfig() {
+        const config = {
+            year: document.getElementById('cfg_year').value,
+            company: document.getElementById('cfg_company').value,
+            minWage: document.getElementById('cfg_minWage').value,
+            taxThresh: document.getElementById('cfg_taxThresh').value,
+            nhiRate: document.getElementById('cfg_nhiRate').value,
+            taxRate: document.getElementById('cfg_taxRate').value
+        };
+        localStorage.setItem('salary_sys_config_v2', JSON.stringify(config));
+    }
+
+    function loadConfig() {
+        const saved = localStorage.getItem('salary_sys_config_v2');
+        if(saved) {
+            const config = JSON.parse(saved);
+            document.getElementById('cfg_year').value = config.year;
+            document.getElementById('cfg_company').value = config.company;
+            document.getElementById('cfg_minWage').value = config.minWage;
+            document.getElementById('cfg_taxThresh').value = config.taxThresh;
+            document.getElementById('cfg_nhiRate').value = config.nhiRate;
+            document.getElementById('cfg_taxRate').value = config.taxRate;
+        }
+    }
+
+    function fmt(num) {
+        if(isNaN(num)) return "0";
+        return num.toLocaleString('en-US');
+    }
+    function getRawVal(id) {
+        const val = document.getElementById(id).value;
+        return parseFloat(val.replace(/,/g, '')) || 0;
+    }
+    function unfmtField(el) {
+        const val = parseFloat(el.value.replace(/,/g, ''));
+        if (!isNaN(val)) el.value = val;
+    }
+    function fmtField(el) {
+        const val = parseFloat(el.value);
+        if (!isNaN(val)) el.value = fmt(val);
+    }
+
+    function setResidency(val) {
+        isResident = val;
+        document.getElementById('btn_res').className = val ? 'toggle-opt active' : 'toggle-opt';
+        document.getElementById('btn_non').className = !val ? 'toggle-opt active' : 'toggle-opt';
+        refreshPreview();
+    }
+    function toggleUnionCheck() {
+        const chk = document.getElementById('chk_union');
+        chk.checked = !chk.checked;
+        refreshPreview();
+    }
+
+    function refreshPreview() {
+        const year = document.getElementById('cfg_year').value;
+        const company = document.getElementById('cfg_company').value;
+        const minWage = getRawVal('cfg_minWage');
+        const taxThresh = getRawVal('cfg_taxThresh');
+        const nhiRate = parseFloat(document.getElementById('cfg_nhiRate').value) / 100;
+        const taxRate = parseFloat(document.getElementById('cfg_taxRate').value) / 100;
+
+        const total = parseFloat(document.getElementById('in_total').value) || 0;
+        const type = document.getElementById('in_type').value;
+        const isUnion = document.getElementById('chk_union').checked;
+
+        let tax = 0;
+        let nhi = 0;
+        let taxFormula = "";
+        let nhiFormula = "";
+
+        if (isUnion || !isResident) {
+            nhi = 0;
+        } else {
+            if (type === '50') {
+                if (total >= minWage) {
+                    nhi = Math.round(total * nhiRate);
+                    nhiFormula = `$${fmt(total)} × ${(nhiRate*100).toFixed(2)}%`;
+                }
+            } else {
+                if (total >= 20000) {
+                    nhi = Math.round(total * nhiRate);
+                    nhiFormula = `$${fmt(total)} × ${(nhiRate*100).toFixed(2)}%`;
+                }
+            }
+        }
+
+        if (isResident) {
+            if (type === '50') {
+                if (total >= taxThresh) {
+                    tax = Math.floor(total * taxRate);
+                    taxFormula = `$${fmt(total)} × ${(taxRate*100)}%`;
+                }
+            } else {
+                if (total >= 20000) {
+                    tax = Math.floor(total * 0.1); 
+                    taxFormula = `$${fmt(total)} × 10%`;
+                }
+            }
+        } else {
+            if (type === '50') {
+                const limit = minWage * 1.5;
+                if (total <= limit) {
+                    tax = Math.floor(total * 0.06);
+                    taxFormula = `$${fmt(total)} × 6%`;
+                } else {
+                    tax = Math.floor(total * 0.18);
+                    taxFormula = `$${fmt(total)} × 18%`;
+                }
+            } else {
+                tax = Math.floor(total * 0.20);
+                taxFormula = `$${fmt(total)} × 20%`;
+            }
+        }
+
+        const net = total - tax - nhi;
+
+        document.getElementById('out_company').innerText = company;
+        document.getElementById('out_date').innerText = document.getElementById('in_date').value;
+        document.getElementById('out_name').innerText = document.getElementById('in_name').value;
+        document.getElementById('out_id').innerText = document.getElementById('in_id').value;
+        document.getElementById('out_content').innerText = document.getElementById('in_content').value;
+        
+        document.getElementById('out_total').innerText = fmt(total);
+        document.getElementById('out_tax').innerText = fmt(tax);
+        document.getElementById('out_nhi').innerText = fmt(nhi);
+        document.getElementById('out_net').innerText = `新台幣 ${fmt(net)} 元整`;
+
+        const taxLabel = document.getElementById('out_tax_label');
+        taxLabel.innerHTML = tax > 0 ? `代扣所得稅 <span class="calc-formula">(${taxFormula})</span>` : `代扣所得稅`;
+
+        const nhiLabel = document.getElementById('out_nhi_label');
+        nhiLabel.innerHTML = nhi > 0 ? `代扣二代健保補充保費 <span class="calc-formula">(${nhiFormula})</span>` : `代扣二代健保補充保費`;
+
+        document.getElementById('out_res').innerText = isResident ? "居住者" : "非居住者";
+        document.getElementById('out_union').innerText = isUnion ? "是" : "否";
+
+        const types = {'50':'50 - 薪資所得', '9A':'9A - 執行業務', '9B':'9B - 稿費/演講'};
+        document.getElementById('out_type').innerText = types[type];
+
+        document.getElementById('note_year').innerText = year;
+        document.getElementById('note_tax_thresh').innerText = fmt(taxThresh);
+        document.getElementById('note_min_wage').innerText = fmt(minWage);
+        document.getElementById('note_tax_rate').innerText = (taxRate*100);
+        document.getElementById('note_nhi_rate').innerText = (nhiRate*100).toFixed(2);
+        document.getElementById('note_nhi_rate_2').innerText = (nhiRate*100).toFixed(2);
+    }
+
+    function saveRecord() {
+        const name = document.getElementById('in_name').value;
+        const total = document.getElementById('in_total').value;
+        if(!name) { alert('請至少輸入所得人姓名'); return; }
+
+        const record = {
+            id: Date.now(),
+            date: document.getElementById('in_date').value,
+            name: name,
+            idNo: document.getElementById('in_id').value,
+            type: document.getElementById('in_type').value,
+            content: document.getElementById('in_content').value,
+            total: total,
+            isRes: isResident,
+            isUnion: document.getElementById('chk_union').checked
+        };
+
+        let history = JSON.parse(localStorage.getItem('salary_records_v2') || '[]');
+        history.unshift(record);
+        localStorage.setItem('salary_records_v2', JSON.stringify(history));
+        
+        alert('✅ 存檔成功！(圖片不會儲存)');
+        loadHistory();
+    }
+
+    function loadHistory() {
+        const tbody = document.getElementById('historyBody');
+        const history = JSON.parse(localStorage.getItem('salary_records_v2') || '[]');
+        const noMsg = document.getElementById('no-history-msg');
+
+        tbody.innerHTML = '';
+        if(history.length === 0) {
+            noMsg.style.display = 'block';
+            return;
+        }
+        noMsg.style.display = 'none';
+
+        const types = {'50':'薪資', '9A':'執行業務', '9B':'稿費'};
+
+        history.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.date || '-'}</td>
+                <td style="font-weight:bold;">${item.name}</td>
+                <td>${types[item.type] || item.type}</td>
+                <td style="font-family:monospace;">$${fmt(parseInt(item.total))}</td>
+                <td>
+                    <button class="btn-sm btn-load" onclick="loadItem(${item.id})">載入</button>
+                    <button class="btn-sm btn-del" onclick="delItem(${item.id})">刪除</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function loadItem(id) {
+        const history = JSON.parse(localStorage.getItem('salary_records_v2') || '[]');
+        const item = history.find(h => h.id === id);
+        if(item) {
+            document.getElementById('in_date').value = item.date;
+            document.getElementById('in_name').value = item.name;
+            document.getElementById('in_id').value = item.idNo;
+            document.getElementById('in_type').value = item.type;
+            document.getElementById('in_content').value = item.content || '';
+            document.getElementById('in_total').value = item.total;
+            setResidency(item.isRes);
+            document.getElementById('chk_union').checked = item.isUnion;
+            alert('已載入文字資料，請重新上傳身分證圖片。');
+            switchTab('edit'); 
+        }
+    }
+
+    function delItem(id) {
+        if(!confirm('確定要刪除這筆紀錄嗎？')) return;
+        let history = JSON.parse(localStorage.getItem('salary_records_v2') || '[]');
+        history = history.filter(h => h.id !== id);
+        localStorage.setItem('salary_records_v2', JSON.stringify(history));
+        loadHistory();
+    }
+
+    function clearForm() {
+        if(!confirm('確定清空所有欄位？')) return;
+        document.getElementById('in_name').value = '';
+        document.getElementById('in_id').value = '';
+        document.getElementById('in_content').value = '';
+        document.getElementById('in_total').value = '';
+        clearImage('img_front', 'text_front', 'file_front');
+        clearImage('img_back', 'text_back', 'file_back');
+        refreshPreview();
+        document.querySelector('.tab-content').scrollTop = 0;
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
