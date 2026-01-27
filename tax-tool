@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勞務報酬明細確認與補件</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #0984e3; --danger: #e74c3c; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f5f6fa; margin: 0; padding: 20px; color: #2f3640; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 25px; border-bottom: 2px solid #f1f2f6; padding-bottom: 10px; }
+        
+        /* 明細卡片 */
+        .detail-card { background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 25px; border: 1px solid #dcdde1; }
+        .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #dcdde1; }
+        .row:last-child { border-bottom: none; }
+        .label { font-weight: bold; color: #7f8c8d; }
+        .value { font-family: 'Consolas', monospace; font-weight: bold; font-size: 1.1em; color: #2d3436; }
+        
+        .net-row { margin-top: 10px; padding: 15px; background: #fff; border-radius: 8px; border: 2px solid var(--accent); }
+        .net-label { color: var(--accent); font-size: 1.2em; font-weight: bold; }
+        .net-value { color: var(--danger); font-size: 1.5em; font-weight: bold; }
+
+        .upload-group { margin-bottom: 20px; }
+        .upload-group label { display: block; margin-bottom: 10px; font-weight: bold; color: #2f3640; }
+        input[type="file"] { width: 100%; padding: 10px; border: 1px solid #dcdde1; border-radius: 8px; box-sizing: border-box; background: #fff; }
+        
+        .btn-submit { width: 100%; padding: 18px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 1.2em; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-submit:hover { background: #074b83; transform: translateY(-2px); }
+        .footer-note { font-size: 0.85em; color: #95a5a6; margin-top: 20px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 id="header_company">勞務報酬明細確認</h2>
+    
+    <div class="detail-card">
+        <div class="row"><span class="label">所得人姓名</span><span class="value" id="v_name">-</span></div>
+        <div class="row"><span class="label">所得類別</span><span class="value" id="v_type">-</span></div>
+        <div class="row"><span class="label">給付總額</span><span class="value" id="v_total">$ 0</span></div>
+        <div class="row"><span class="label">代扣所得稅</span><span class="value" id="v_tax" style="color:var(--accent);">- $ 0</span></div>
+        <div class="row"><span class="label">代扣補充保費</span><span class="value" id="v_nhi" style="color:var(--accent);">- $ 0</span></div>
+        <div class="row net-row">
+            <span class="net-label">實領淨額</span>
+            <span class="net-value" id="v_net">$ 0</span>
+        </div>
+    </div>
+
+    <form id="clientForm">
+        <div class="upload-group">
+            <label>📷 上傳身分證正面照片</label>
+            <input type="file" required>
+        </div>
+        <div class="upload-group">
+            <label>📷 上傳身分證反面照片</label>
+            <input type="file" required>
+        </div>
+        <div class="upload-group">
+            <label>✍️ 上傳手寫簽名照片 (白紙簽名拍照)</label>
+            <input type="file" required>
+        </div>
+        <button type="submit" class="btn-submit">確認明細並提交資料</button>
+    </form>
+
+    <div class="footer-note">
+        ※ 以上金額由本事務所預填，僅供核對，所得人無法修改。<br>
+        ※ 若金額有誤，請聯繫本公司財務經辦人。<br>
+        ※ 您的資料將受法律保護並僅用於本次稅務申報。
+    </div>
+</div>
+
+<script>
+    // 1. 從網址讀取參數
+    const p = new URLSearchParams(window.location.search);
+    const name = p.get('name') || "未提供";
+    const total = parseInt(p.get('total')) || 0;
+    const type = p.get('type') || "50";
+    const isRes = p.get('res') !== 'false';
+    const company = p.get('company') || "本事務所";
+
+    // 2. 專業稅務計算邏輯 (同步公司端邏輯)
+    let tax = 0, nhi = 0;
+    const nhiRate = 0.0211;
+
+    if (isRes) {
+        // 健保補充保費 (115年度標準)
+        if ((type === '50' && total >= 29500) || (type !== '50' && total >= 20000)) {
+            nhi = Math.round(total * nhiRate);
+        }
+        // 所得稅 (115年度標準)
+        if (type === '50' && total >= 90501) {
+            tax = Math.floor(total * 0.05); // 薪資 5%
+        } else if (type !== '50' && total >= 20000) {
+            tax = Math.floor(total * 0.1); // 9A/9B 10%
+        }
+    } else {
+        // 非居住者 (薪資 18%, 執行業務 20%)
+        tax = (type === '50') ? Math.floor(total * 0.18) : Math.floor(total * 0.20);
+    }
+
+    const net = total - tax - nhi;
+
+    // 3. 渲染到畫面上
+    document.getElementById('header_company').innerText = company + " 勞務報酬確認";
+    document.getElementById('v_name').innerText = name;
+    document.getElementById('v_type').innerText = type + (type==='50'?' 薪資所得':' 執行業務');
+    document.getElementById('v_total').innerText = '$ ' + total.toLocaleString();
+    document.getElementById('v_tax').innerText = '- $ ' + tax.toLocaleString();
+    document.getElementById('v_nhi').innerText = '- $ ' + nhi.toLocaleString();
+    document.getElementById('v_net').innerText = '$ ' + net.toLocaleString();
+
+    // 4. 提交動作
+    document.getElementById('clientForm').onsubmit = function(e) {
+        e.preventDefault();
+        alert("資料上傳中...\n(提醒：此處未來可串接 Power Automate 或 Google Sheets)");
+    };
+</script>
+</body>
+</html>
