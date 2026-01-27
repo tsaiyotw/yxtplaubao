@@ -163,17 +163,24 @@
         .doc-title { font-size: 18pt; font-weight: bold; border: 2px solid #000; display: inline-block; padding: 5px 20px; }
 
         table.std-table { width: 100%; border-collapse: collapse; border: 2px solid #000; table-layout: fixed; }
-        table.std-table td { border: 1px solid #000; padding: 8px 10px; vertical-align: middle; font-size: 11pt; line-height: 1.4; }
+        table.std-table td { border: 1px solid #000; padding: 6px 10px; vertical-align: middle; font-size: 11pt; line-height: 1.3; }
         .col-gray { background: #e0e0e0; text-align: center; font-weight: bold; }
         .money-cell { font-family: "Courier New", monospace; font-weight: bold; text-align: right; padding-right: 15px; font-size: 12pt; }
         .calc-formula { font-size: 10pt; color: #555; font-family: "Courier New", monospace; margin-left: 10px; }
 
-        .footer-notes { font-size: 10pt; margin-top: 15px; line-height: 1.6; color: #333; }
-        .signature-row { margin-top: 40px; display: flex; justify-content: space-between; border: 2px solid #000; padding: 15px; }
+        .footer-notes { font-size: 9.5pt; margin-top: 10px; line-height: 1.5; color: #333; }
+        .note-sub-box {
+            margin-top: 5px; 
+            padding-top: 5px; 
+            border-top: 1px dashed #999;
+            color: #444;
+        }
+
+        .signature-row { margin-top: 30px; display: flex; justify-content: space-between; border: 2px solid #000; padding: 15px; }
         .sig-box { width: 45%; }
         
         /* 圖片黏貼區 */
-        .id-paste-area { margin-top: 20px; display: flex; gap: 20px; height: 220px; }
+        .id-paste-area { margin-top: 15px; display: flex; gap: 20px; height: 220px; }
         .paste-box { 
             flex: 1; border: 2px dashed #b2bec3; 
             display: flex; align-items: center; justify-content: center; 
@@ -431,7 +438,15 @@
                     <strong>※ 扣繳備註 (依 <span id="note_year">115</span> 年度標準)：</strong><br>
                     1. <strong>薪資所得(50)：</strong>起扣點 $<span id="note_tax_thresh"></span>，扣繳 <span id="note_tax_rate"></span>%；給付達基本工資($<span id="note_min_wage"></span>)且無工會者扣 <span id="note_nhi_rate"></span>% 健保。<br>
                     2. <strong>執行業務(9A/9B)：</strong>單次給付達 $20,000 者，需扣繳 10% 所得稅；無工會者需另扣 <span id="note_nhi_rate_2"></span>% 健保。<br>
-                    3. <strong>非居住者：</strong>依稅法規定 (薪資低於1.5倍基本工資扣6%，超過扣18%；執行業務扣20%)。
+                    3. <strong>非居住者：</strong>依稅法規定 (薪資低於1.5倍基本工資扣6%，超過扣18%；執行業務扣20%)。<br>
+                    
+                    <div class="note-sub-box">
+                        <strong>※ 符合免扣二代健保補充保費身分者，請檢附以下證明文件：</strong><br>
+                        (1) 專職學生：學生證影本 (需有當學期註冊章)。<br>
+                        (2) 職業工會：工會投保 "當期" 繳費證明單或在保證明。<br>
+                        (3) 低收入戶：社政機關核發之有效證明文件。<br>
+                        (4) 身心障礙者：領有身心障礙手冊或證明者。
+                    </div>
                 </div>
 
                 <div class="signature-row">
@@ -521,14 +536,14 @@
         document.querySelector('.tab-content').scrollTop = 0;
     }
 
-    // --- 浮水印處理 (雙行靠左) ---
+    // --- 浮水印處理 (雙行靠左版) ---
     function processImage(input, imgId, textId, type) {
         if (input.files && input.files[0]) {
             const file = input.files[0];
             const reader = new FileReader();
             const company = document.getElementById('cfg_company').value || "本公司";
             
-            // 強制兩行文字
+            // 強制設定為兩行文字
             const line1 = `僅供 ${company}`;
             const line2 = `申請勞務報酬使用`;
 
@@ -544,20 +559,23 @@
                     // 1. 繪製原圖
                     ctx.drawImage(img, 0, 0);
 
-                    // 2. 設定樣式 (字體放大)
-                    const fontSize = canvas.width * 0.055; 
+                    // 2. 設定樣式 (字體調整)
+                    const fontSize = canvas.width * 0.055; // 字體大小
                     ctx.font = `bold ${fontSize}px "Microsoft JhengHei"`;
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; // 幾乎不透明的白
-                    ctx.textAlign = "left"; // 靠左對齊
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; // 高透明度白色
+                    ctx.textAlign = "left"; // ★重點：靠左對齊
                     ctx.textBaseline = "middle";
-                    ctx.shadowColor = "rgba(0, 0, 0, 0.6)"; // 深色陰影
+                    ctx.shadowColor = "rgba(0, 0, 0, 0.6)"; // 深色陰影增加可讀性
                     ctx.shadowBlur = 4;
 
                     // 3. 定位
-                    // x 軸：從左側 5% 處開始
+                    // X 軸：靠左邊界 5% 處
                     let x = canvas.width * 0.05;
-                    // y 軸：正面約 25%，反面約 80%
-                    let y = type === 'front' ? canvas.height * 0.25 : canvas.height * 0.80;
+                    
+                    // Y 軸：正面 20% (標題下)，反面 85% (條碼處)
+                    let y = type === 'front' ? canvas.height * 0.20 : canvas.height * 0.85;
+                    
+                    // 行高設定
                     const lineHeight = fontSize * 1.3;
 
                     // 4. 繪製兩行
