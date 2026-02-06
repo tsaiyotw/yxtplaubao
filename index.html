@@ -12,6 +12,7 @@
             --white: #ffffff;
             --border: #b2bec3;
             --danger: #e74c3c;
+            --success: #27ae60;
         }
         body {
             font-family: "Microsoft JhengHei", "PMingLiU", sans-serif;
@@ -85,10 +86,7 @@
         
         .form-group { margin-bottom: 15px; }
         .label-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;
         }
         .form-label { font-weight: bold; color: #555; }
         
@@ -97,29 +95,15 @@
 
         /* 上傳框樣式 */
         .file-box {
-            border: 2px dashed #ccc;
-            border-radius: 4px;
-            padding: 10px;
-            text-align: center;
-            background: #fafafa;
-            cursor: pointer;
-            transition: 0.2s;
-            color: #888;
-            font-size: 14px;
-            position: relative;
+            border: 2px dashed #ccc; border-radius: 4px; padding: 10px; text-align: center;
+            background: #fafafa; cursor: pointer; transition: 0.2s; color: #888; font-size: 14px; position: relative;
         }
         .file-box:hover { border-color: var(--accent); background: #eef6fc; color: var(--accent); }
         
-        /* 清除按鈕 (小顆) */
+        /* 小按鈕 */
         .btn-clear-sm {
-            background: var(--danger);
-            color: white;
-            border: none;
-            padding: 4px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex; align-items: center; gap: 4px;
+            background: var(--danger); color: white; border: none; padding: 4px 10px;
+            border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;
         }
         .btn-clear-sm:hover { opacity: 0.8; }
 
@@ -132,10 +116,12 @@
 
         .config-box { background: #fdfefe; border-color: #b2bec3; }
         
-        /* 狀態切換 */
+        /* 狀態切換按鈕 */
         .toggle-switch { display: flex; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
-        .toggle-opt { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: #eee; }
+        .toggle-opt { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: #eee; transition: 0.2s; }
         .toggle-opt.active { background: var(--accent); color: white; font-weight: bold; }
+        
+        .toggle-opt.mode-net.active { background: #e17055; color: white; }
 
         /* --- Tab 2: 預覽與列印 --- */
         .preview-wrapper { display: flex; flex-direction: column; align-items: center; }
@@ -166,24 +152,26 @@
         table.std-table td { border: 1px solid #000; padding: 6px 10px; vertical-align: middle; font-size: 11pt; line-height: 1.3; }
         .col-gray { background: #e0e0e0; text-align: center; font-weight: bold; }
         .money-cell { font-family: "Courier New", monospace; font-weight: bold; text-align: right; padding-right: 15px; font-size: 12pt; }
-        .calc-formula { font-size: 10pt; color: #555; font-family: "Courier New", monospace; margin-left: 10px; }
+        
+        /* 計算式樣式調整：換行顯示 */
+        .calc-formula { 
+            display: block; /* 強制換行 */
+            font-size: 9pt; 
+            color: #666; 
+            font-family: "Courier New", monospace; 
+            margin-top: 4px; /* 與標題的距離 */
+            font-weight: normal; /* 不加粗 */
+        }
 
         .footer-notes { font-size: 9.5pt; margin-top: 10px; line-height: 1.5; color: #333; }
-        .note-sub-box {
-            margin-top: 5px; 
-            padding-top: 5px; 
-            border-top: 1px dashed #999;
-            color: #444;
-        }
+        .note-sub-box { margin-top: 5px; padding-top: 5px; border-top: 1px dashed #999; color: #444; }
 
         .signature-row { margin-top: 30px; display: flex; justify-content: space-between; border: 2px solid #000; padding: 15px; }
         .sig-box { width: 45%; }
         
-        /* 圖片黏貼區 */
         .id-paste-area { margin-top: 15px; display: flex; gap: 20px; height: 220px; }
         .paste-box { 
-            flex: 1; border: 2px dashed #b2bec3; 
-            display: flex; align-items: center; justify-content: center; 
+            flex: 1; border: 2px dashed #b2bec3; display: flex; align-items: center; justify-content: center; 
             color: #b2bec3; font-size: 14pt; text-align: center; background: #fafafa;
             overflow: hidden; position: relative; cursor: pointer;
         }
@@ -191,7 +179,6 @@
         .paste-box img { max-width: 98%; max-height: 98%; object-fit: contain; display: none; }
         .paste-text { position: absolute; pointer-events: none; }
 
-        /* 第二頁 */
         .page-break { page-break-before: always; }
         .bankbook-page { display: none; border: 2px dashed #b2bec3; height: 400px; margin-top: 50px; align-items: center; justify-content: center; color: #b2bec3; font-size: 16pt; background: #fafafa; }
 
@@ -318,8 +305,17 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" style="color:#0984e3; font-size:1.1em;">給付總額 (新台幣)</label>
-                    <input type="number" id="in_total" class="form-input" style="font-size:20px; font-weight:bold; border:2px solid #0984e3;" placeholder="輸入金額" oninput="refreshPreview()">
+                    <div class="label-row">
+                        <span class="form-label" style="color:#0984e3; font-size:1.1em;">給付金額設定</span>
+                        <div class="toggle-switch" style="width:200px;">
+                            <div id="btn_mode_gross" class="toggle-opt active" onclick="setCalcMode('gross')">含稅 (申報)</div>
+                            <div id="btn_mode_net" class="toggle-opt mode-net" onclick="setCalcMode('net')">不含稅 (實領)</div>
+                        </div>
+                    </div>
+                    <input type="number" id="in_total" class="form-input" style="font-size:20px; font-weight:bold; border:2px solid #0984e3; margin-top:5px;" placeholder="輸入金額" oninput="refreshPreview()">
+                    <div id="calc_hint" style="font-size:13px; color:#e74c3c; margin-top:5px; display:none;">
+                        * 系統將自動反推申報金額，以符合您輸入的實領數字。
+                    </div>
                 </div>
             </fieldset>
             
@@ -339,7 +335,6 @@
                             <span>📂 點此選擇檔案...</span>
                         </label>
                     </div>
-
                     <div class="form-group">
                         <div class="label-row">
                             <span class="form-label">反面圖檔</span>
@@ -411,7 +406,7 @@
                         <td class="col-gray">金 額</td>
                     </tr>
                     <tr>
-                        <td style="padding-left:15px; font-weight:bold;" colspan="2">給付總額</td>
+                        <td style="padding-left:15px; font-weight:bold;" colspan="2">給付總額 (申報所得)</td>
                         <td class="money-cell" id="out_total">0</td>
                     </tr>
                     <tr>
@@ -491,16 +486,17 @@
         <div class="history-container">
             <h2 style="color:#2c3e50; border-bottom:2px solid #eee; padding-bottom:10px;">📂 歷史存檔紀錄</h2>
             <div style="text-align:right; margin-bottom:10px; font-size:14px; color:#777;">
-                * 僅儲存文字資料，圖片需每次重新上傳
+                * 僅儲存文字資料 (含金額計算模式)，圖片需重新上傳
             </div>
             
             <table class="history-table">
                 <thead>
                     <tr>
                         <th>日期</th>
-                        <th>所得人姓名</th>
-                        <th>所得類別</th>
-                        <th>給付總額</th>
+                        <th>姓名</th>
+                        <th>類別</th>
+                        <th>模式</th>
+                        <th>輸入金額</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -516,6 +512,7 @@
 
 <script>
     let isResident = true;
+    let calcMode = 'gross'; // 'gross' (含稅) or 'net' (不含稅/實領)
 
     function init() {
         document.getElementById('in_date').valueAsDate = new Date();
@@ -536,14 +533,166 @@
         document.querySelector('.tab-content').scrollTop = 0;
     }
 
-    // --- 浮水印處理 (雙行靠左版) ---
+    function setCalcMode(mode) {
+        calcMode = mode;
+        document.getElementById('btn_mode_gross').className = mode === 'gross' ? 'toggle-opt active' : 'toggle-opt';
+        document.getElementById('btn_mode_net').className = mode === 'net' ? 'toggle-opt mode-net active' : 'toggle-opt mode-net';
+        document.getElementById('calc_hint').style.display = mode === 'net' ? 'block' : 'none';
+        refreshPreview();
+    }
+
+    function calculateFromNet(net, type, minWage, taxThresh, nhiRate, taxRate, isRes, isUnion) {
+        if (net <= 0) return { gross: 0, tax: 0, nhi: 0 };
+        let zones = [];
+        if (!isRes) {
+            if (type === '50') {
+                const limit = minWage * 1.5;
+                zones.push({ min: 0, max: limit, t: 0.06, n: 0 });
+                zones.push({ min: limit, max: 99999999, t: 0.18, n: 0 });
+            } else {
+                zones.push({ min: 0, max: 99999999, t: 0.20, n: 0 });
+            }
+        } else {
+            if (type === '50') {
+                zones.push({ min: 0, max: minWage, t: 0, n: 0 });
+                let nRate = isUnion ? 0 : nhiRate;
+                zones.push({ min: minWage, max: taxThresh, t: 0, n: nRate });
+                zones.push({ min: taxThresh, max: 99999999, t: taxRate, n: nRate });
+            } else {
+                zones.push({ min: 0, max: 20000, t: 0, n: 0 });
+                let nRate = isUnion ? 0 : nhiRate;
+                zones.push({ min: 20000, max: 99999999, t: 0.1, n: nRate });
+            }
+        }
+
+        for (let z of zones) {
+            let factor = 1 - z.t - z.n;
+            if (factor <= 0) continue;
+            let estGross = Math.ceil(net / factor);
+            if (estGross >= z.min && (estGross < z.max || z.max > 9999999)) {
+                let tax = 0;
+                let nhi = 0;
+                if(isRes && type==='50' && estGross>=taxThresh) tax = Math.floor(estGross * taxRate);
+                else if(isRes && type!=='50' && estGross>=20000) tax = Math.floor(estGross * 0.1);
+                else if(!isRes && type==='50') tax = Math.floor(estGross * (estGross <= minWage*1.5 ? 0.06 : 0.18));
+                else if(!isRes && type!=='50') tax = Math.floor(estGross * 0.2);
+
+                if(!isUnion && isRes) {
+                    if(type==='50' && estGross >= minWage) nhi = Math.round(estGross * nhiRate);
+                    else if(type!=='50' && estGross >= 20000) nhi = Math.round(estGross * nhiRate);
+                }
+
+                if (estGross - tax - nhi >= net) {
+                    return { gross: estGross, tax: tax, nhi: nhi };
+                }
+            }
+        }
+        return { gross: net, tax: 0, nhi: 0 };
+    }
+
+    function refreshPreview() {
+        const year = document.getElementById('cfg_year').value;
+        const company = document.getElementById('cfg_company').value;
+        const minWage = getRawVal('cfg_minWage');
+        const taxThresh = getRawVal('cfg_taxThresh');
+        const nhiRate = parseFloat(document.getElementById('cfg_nhiRate').value) / 100;
+        const taxRate = parseFloat(document.getElementById('cfg_taxRate').value) / 100;
+
+        const inputVal = parseFloat(document.getElementById('in_total').value) || 0;
+        const type = document.getElementById('in_type').value;
+        const isUnion = document.getElementById('chk_union').checked;
+
+        let total = 0;
+        let tax = 0;
+        let nhi = 0;
+        let taxFormula = "";
+        let nhiFormula = "";
+
+        if (calcMode === 'gross') {
+            total = inputVal;
+            if (isUnion || !isResident) {
+                nhi = 0;
+            } else {
+                if (type === '50') {
+                    if (total >= minWage) nhi = Math.round(total * nhiRate);
+                } else {
+                    if (total >= 20000) nhi = Math.round(total * nhiRate);
+                }
+            }
+            if (isResident) {
+                if (type === '50') {
+                    if (total >= taxThresh) tax = Math.floor(total * taxRate);
+                } else {
+                    if (total >= 20000) tax = Math.floor(total * 0.1);
+                }
+            } else {
+                if (type === '50') {
+                    const limit = minWage * 1.5;
+                    tax = Math.floor(total * (total <= limit ? 0.06 : 0.18));
+                } else {
+                    tax = Math.floor(total * 0.2);
+                }
+            }
+        } else {
+            const result = calculateFromNet(inputVal, type, minWage, taxThresh, nhiRate, taxRate, isResident, isUnion);
+            total = result.gross;
+            tax = result.tax;
+            nhi = result.nhi;
+        }
+
+        if (nhi > 0) {
+            const rateStr = (nhiRate * 100).toFixed(2);
+            nhiFormula = `$${fmt(total)} × ${rateStr}%`;
+        }
+        if (tax > 0) {
+            let tRate = 0;
+            if (tax > 0) tRate = Math.round((tax / total) * 100);
+            if (isResident && type==='50') tRate = taxRate * 100;
+            taxFormula = `$${fmt(total)} × ${tRate}%`; 
+            if(!isResident && type==='50') taxFormula = `$${fmt(total)} × ${(total <= minWage*1.5 ? 6 : 18)}%`;
+            if(type !== '50' && isResident) taxFormula = `$${fmt(total)} × 10%`;
+            if(type !== '50' && !isResident) taxFormula = `$${fmt(total)} × 20%`;
+        }
+
+        const net = total - tax - nhi;
+
+        document.getElementById('out_company').innerText = company;
+        document.getElementById('out_date').innerText = document.getElementById('in_date').value;
+        document.getElementById('out_name').innerText = document.getElementById('in_name').value;
+        document.getElementById('out_id').innerText = document.getElementById('in_id').value;
+        document.getElementById('out_content').innerText = document.getElementById('in_content').value;
+        
+        document.getElementById('out_total').innerText = fmt(total);
+        document.getElementById('out_tax').innerText = fmt(tax);
+        document.getElementById('out_nhi').innerText = fmt(nhi);
+        document.getElementById('out_net').innerText = `新台幣 ${fmt(net)} 元整`;
+
+        // 顯示修正：公式移至下方
+        const taxLabel = document.getElementById('out_tax_label');
+        taxLabel.innerHTML = tax > 0 ? `代扣所得稅<span class="calc-formula">(${taxFormula})</span>` : `代扣所得稅`;
+
+        const nhiLabel = document.getElementById('out_nhi_label');
+        nhiLabel.innerHTML = nhi > 0 ? `代扣二代健保補充保費<span class="calc-formula">(${nhiFormula})</span>` : `代扣二代健保補充保費`;
+
+        document.getElementById('out_res').innerText = isResident ? "居住者" : "非居住者";
+        document.getElementById('out_union').innerText = isUnion ? "是" : "否";
+
+        const types = {'50':'50 - 薪資所得', '9A':'9A - 執行業務', '9B':'9B - 稿費/演講'};
+        document.getElementById('out_type').innerText = types[type];
+
+        document.getElementById('note_year').innerText = year;
+        document.getElementById('note_tax_thresh').innerText = fmt(taxThresh);
+        document.getElementById('note_min_wage').innerText = fmt(minWage);
+        document.getElementById('note_tax_rate').innerText = (taxRate*100);
+        document.getElementById('note_nhi_rate').innerText = (nhiRate*100).toFixed(2);
+        document.getElementById('note_nhi_rate_2').innerText = (nhiRate*100).toFixed(2);
+    }
+
     function processImage(input, imgId, textId, type) {
         if (input.files && input.files[0]) {
             const file = input.files[0];
             const reader = new FileReader();
             const company = document.getElementById('cfg_company').value || "本公司";
-            
-            // 強制設定為兩行文字
             const line1 = `僅供 ${company}`;
             const line2 = `申請勞務報酬使用`;
 
@@ -555,34 +704,19 @@
                     const ctx = canvas.getContext('2d');
                     canvas.width = img.width;
                     canvas.height = img.height;
-
-                    // 1. 繪製原圖
                     ctx.drawImage(img, 0, 0);
-
-                    // 2. 設定樣式 (字體調整)
-                    const fontSize = canvas.width * 0.055; // 字體大小
+                    const fontSize = canvas.width * 0.055; 
                     ctx.font = `bold ${fontSize}px "Microsoft JhengHei"`;
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; // 高透明度白色
-                    ctx.textAlign = "left"; // ★重點：靠左對齊
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                    ctx.textAlign = "left"; 
                     ctx.textBaseline = "middle";
-                    ctx.shadowColor = "rgba(0, 0, 0, 0.6)"; // 深色陰影增加可讀性
+                    ctx.shadowColor = "rgba(0, 0, 0, 0.6)"; 
                     ctx.shadowBlur = 4;
-
-                    // 3. 定位
-                    // X 軸：靠左邊界 5% 處
                     let x = canvas.width * 0.05;
-                    
-                    // Y 軸：正面 20% (標題下)，反面 85% (條碼處)
                     let y = type === 'front' ? canvas.height * 0.20 : canvas.height * 0.85;
-                    
-                    // 行高設定
                     const lineHeight = fontSize * 1.3;
-
-                    // 4. 繪製兩行
                     ctx.fillText(line1, x, y);
                     ctx.fillText(line2, x, y + lineHeight);
-
-                    // 5. 輸出
                     document.getElementById(imgId).src = canvas.toDataURL('image/jpeg');
                     document.getElementById(imgId).style.display = 'block';
                     document.getElementById(textId).style.display = 'none';
@@ -653,103 +787,10 @@
         refreshPreview();
     }
 
-    function refreshPreview() {
-        const year = document.getElementById('cfg_year').value;
-        const company = document.getElementById('cfg_company').value;
-        const minWage = getRawVal('cfg_minWage');
-        const taxThresh = getRawVal('cfg_taxThresh');
-        const nhiRate = parseFloat(document.getElementById('cfg_nhiRate').value) / 100;
-        const taxRate = parseFloat(document.getElementById('cfg_taxRate').value) / 100;
-
-        const total = parseFloat(document.getElementById('in_total').value) || 0;
-        const type = document.getElementById('in_type').value;
-        const isUnion = document.getElementById('chk_union').checked;
-
-        let tax = 0;
-        let nhi = 0;
-        let taxFormula = "";
-        let nhiFormula = "";
-
-        if (isUnion || !isResident) {
-            nhi = 0;
-        } else {
-            if (type === '50') {
-                if (total >= minWage) {
-                    nhi = Math.round(total * nhiRate);
-                    nhiFormula = `$${fmt(total)} × ${(nhiRate*100).toFixed(2)}%`;
-                }
-            } else {
-                if (total >= 20000) {
-                    nhi = Math.round(total * nhiRate);
-                    nhiFormula = `$${fmt(total)} × ${(nhiRate*100).toFixed(2)}%`;
-                }
-            }
-        }
-
-        if (isResident) {
-            if (type === '50') {
-                if (total >= taxThresh) {
-                    tax = Math.floor(total * taxRate);
-                    taxFormula = `$${fmt(total)} × ${(taxRate*100)}%`;
-                }
-            } else {
-                if (total >= 20000) {
-                    tax = Math.floor(total * 0.1); 
-                    taxFormula = `$${fmt(total)} × 10%`;
-                }
-            }
-        } else {
-            if (type === '50') {
-                const limit = minWage * 1.5;
-                if (total <= limit) {
-                    tax = Math.floor(total * 0.06);
-                    taxFormula = `$${fmt(total)} × 6%`;
-                } else {
-                    tax = Math.floor(total * 0.18);
-                    taxFormula = `$${fmt(total)} × 18%`;
-                }
-            } else {
-                tax = Math.floor(total * 0.20);
-                taxFormula = `$${fmt(total)} × 20%`;
-            }
-        }
-
-        const net = total - tax - nhi;
-
-        document.getElementById('out_company').innerText = company;
-        document.getElementById('out_date').innerText = document.getElementById('in_date').value;
-        document.getElementById('out_name').innerText = document.getElementById('in_name').value;
-        document.getElementById('out_id').innerText = document.getElementById('in_id').value;
-        document.getElementById('out_content').innerText = document.getElementById('in_content').value;
-        
-        document.getElementById('out_total').innerText = fmt(total);
-        document.getElementById('out_tax').innerText = fmt(tax);
-        document.getElementById('out_nhi').innerText = fmt(nhi);
-        document.getElementById('out_net').innerText = `新台幣 ${fmt(net)} 元整`;
-
-        const taxLabel = document.getElementById('out_tax_label');
-        taxLabel.innerHTML = tax > 0 ? `代扣所得稅 <span class="calc-formula">(${taxFormula})</span>` : `代扣所得稅`;
-
-        const nhiLabel = document.getElementById('out_nhi_label');
-        nhiLabel.innerHTML = nhi > 0 ? `代扣二代健保補充保費 <span class="calc-formula">(${nhiFormula})</span>` : `代扣二代健保補充保費`;
-
-        document.getElementById('out_res').innerText = isResident ? "居住者" : "非居住者";
-        document.getElementById('out_union').innerText = isUnion ? "是" : "否";
-
-        const types = {'50':'50 - 薪資所得', '9A':'9A - 執行業務', '9B':'9B - 稿費/演講'};
-        document.getElementById('out_type').innerText = types[type];
-
-        document.getElementById('note_year').innerText = year;
-        document.getElementById('note_tax_thresh').innerText = fmt(taxThresh);
-        document.getElementById('note_min_wage').innerText = fmt(minWage);
-        document.getElementById('note_tax_rate').innerText = (taxRate*100);
-        document.getElementById('note_nhi_rate').innerText = (nhiRate*100).toFixed(2);
-        document.getElementById('note_nhi_rate_2').innerText = (nhiRate*100).toFixed(2);
-    }
-
     function saveRecord() {
         const name = document.getElementById('in_name').value;
-        const total = document.getElementById('in_total').value;
+        const inputTotal = document.getElementById('in_total').value;
+        
         if(!name) { alert('請至少輸入所得人姓名'); return; }
 
         const record = {
@@ -759,22 +800,23 @@
             idNo: document.getElementById('in_id').value,
             type: document.getElementById('in_type').value,
             content: document.getElementById('in_content').value,
-            total: total,
+            inputTotal: inputTotal,
+            calcMode: calcMode,
             isRes: isResident,
             isUnion: document.getElementById('chk_union').checked
         };
 
-        let history = JSON.parse(localStorage.getItem('salary_records_v2') || '[]');
+        let history = JSON.parse(localStorage.getItem('salary_records_v3') || '[]');
         history.unshift(record);
-        localStorage.setItem('salary_records_v2', JSON.stringify(history));
+        localStorage.setItem('salary_records_v3', JSON.stringify(history));
         
-        alert('✅ 存檔成功！(圖片不會儲存)');
+        alert('✅ 存檔成功！');
         loadHistory();
     }
 
     function loadHistory() {
         const tbody = document.getElementById('historyBody');
-        const history = JSON.parse(localStorage.getItem('salary_records_v2') || '[]');
+        const history = JSON.parse(localStorage.getItem('salary_records_v3') || '[]');
         const noMsg = document.getElementById('no-history-msg');
 
         tbody.innerHTML = '';
@@ -788,11 +830,13 @@
 
         history.forEach(item => {
             const tr = document.createElement('tr');
+            const modeText = item.calcMode === 'net' ? '<span style="color:#e74c3c;">(實領)</span>' : '(申報)';
             tr.innerHTML = `
                 <td>${item.date || '-'}</td>
                 <td style="font-weight:bold;">${item.name}</td>
                 <td>${types[item.type] || item.type}</td>
-                <td style="font-family:monospace;">$${fmt(parseInt(item.total))}</td>
+                <td>${modeText}</td>
+                <td style="font-family:monospace;">$${fmt(parseInt(item.inputTotal))}</td>
                 <td>
                     <button class="btn-sm btn-load" onclick="loadItem(${item.id})">載入</button>
                     <button class="btn-sm btn-del" onclick="delItem(${item.id})">刪除</button>
@@ -803,7 +847,7 @@
     }
 
     function loadItem(id) {
-        const history = JSON.parse(localStorage.getItem('salary_records_v2') || '[]');
+        const history = JSON.parse(localStorage.getItem('salary_records_v3') || '[]');
         const item = history.find(h => h.id === id);
         if(item) {
             document.getElementById('in_date').value = item.date;
@@ -811,19 +855,20 @@
             document.getElementById('in_id').value = item.idNo;
             document.getElementById('in_type').value = item.type;
             document.getElementById('in_content').value = item.content || '';
-            document.getElementById('in_total').value = item.total;
+            document.getElementById('in_total').value = item.inputTotal;
+            setCalcMode(item.calcMode || 'gross');
             setResidency(item.isRes);
             document.getElementById('chk_union').checked = item.isUnion;
-            alert('已載入文字資料，請重新上傳身分證圖片。');
+            alert('已載入資料！');
             switchTab('edit'); 
         }
     }
 
     function delItem(id) {
         if(!confirm('確定要刪除這筆紀錄嗎？')) return;
-        let history = JSON.parse(localStorage.getItem('salary_records_v2') || '[]');
+        let history = JSON.parse(localStorage.getItem('salary_records_v3') || '[]');
         history = history.filter(h => h.id !== id);
-        localStorage.setItem('salary_records_v2', JSON.stringify(history));
+        localStorage.setItem('salary_records_v3', JSON.stringify(history));
         loadHistory();
     }
 
@@ -833,6 +878,7 @@
         document.getElementById('in_id').value = '';
         document.getElementById('in_content').value = '';
         document.getElementById('in_total').value = '';
+        setCalcMode('gross'); 
         clearImage('img_front', 'text_front', 'file_front');
         clearImage('img_back', 'text_back', 'file_back');
         refreshPreview();
